@@ -1,0 +1,48 @@
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push supersedes an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+        env:
+          # Only scripts/drive.mjs needs a browser, and it does not run here.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+      - run: npm test
+      - run: npm run build
+      - name: Serve the game as the site root
+        # Pages serves index.html; the game is one self-contained file, and
+        # bundle.js is only the build's intermediate.
+        run: |
+          cp dist/kakeya-game.html dist/index.html
+          rm dist/bundle.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

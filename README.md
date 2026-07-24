@@ -4,8 +4,9 @@ A single-file browser game that teaches the Kakeya conjecture, its connection
 to harmonic analysis, and what that connection does (and honestly doesn't) mean
 for everyday technology. Aimed at a curious high-school student; ~20 minutes.
 
-**Play it:** open `dist/kakeya-game.html` in any browser. Everything — code,
-fonts, libraries — is inlined; it works offline. Progress saves locally.
+**Play it:** [quantisan.github.io/kakeya-game](https://quantisan.github.io/kakeya-game/),
+or `npm install && npm run build` and open `dist/kakeya-game.html`. Everything —
+code, fonts, libraries — is inlined; it works offline. Progress saves locally.
 
 ## The arc (one level per historical beat)
 
