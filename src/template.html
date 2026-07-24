@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Needle &amp; The Wave — a Kakeya conjecture game</title>
+<style>
+:root {
+  --paper: #FDFDFB;
+  --grid-minor: #E4EDF4;
+  --grid-major: #C8D9E6;
+  --ink: #1B2130;
+  --ink-soft: #5A6376;
+  --needle: #C8102E;
+  --needle-soft: #F3D6DB;
+  --scope-bg: #0E1520;
+  --scope-edge: #1D2A3C;
+  --phosphor: #FFB000;
+  --phosphor-dim: #8A6200;
+  --ok: #1F7A46;
+  --serif: "STIX Two Text", "Iowan Old Style", Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--serif);
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  font-size: 17px;
+  line-height: 1.55;
+}
+#app { max-width: 860px; margin: 0 auto; padding: 20px 16px 80px; }
+
+/* ---------- masthead ---------- */
+header.masthead { margin-bottom: 18px; }
+.masthead h1 {
+  font-size: clamp(1.9rem, 5vw, 2.7rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 4px 0 2px;
+}
+.masthead h1 .amp { color: var(--needle); font-style: italic; }
+.masthead .subtitle { margin: 0 0 12px; color: var(--ink-soft); font-style: italic; }
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* ---------- oscilloscope strip (the signature) ---------- */
+.scope-wrap {
+  background: var(--scope-bg);
+  border: 1px solid var(--scope-edge);
+  border-radius: 4px;
+  padding: 6px 10px 8px;
+  margin: 10px 0 4px;
+}
+.scope-wrap .scope-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--phosphor-dim);
+  display: flex;
+  justify-content: space-between;
+}
+.scope-wrap canvas { display: block; width: 100%; height: 48px; }
+
+/* ---------- timeline navigation ---------- */
+nav.timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--grid-major);
+  padding: 10px 0;
+  margin-bottom: 22px;
+}
+.timeline button {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 5px 9px;
+  cursor: pointer;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.timeline button .yr { font-size: 0.62rem; color: var(--ink-soft); letter-spacing: 0.08em; }
+.timeline button.active { background: var(--ink); color: var(--paper); }
+.timeline button.active .yr { color: var(--grid-major); }
+.timeline button.done { border-color: var(--ok); }
+.timeline button.done .yr { color: var(--ok); }
+.timeline button:disabled { opacity: 0.38; cursor: not-allowed; }
+.timeline button:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--needle);
+  outline-offset: 2px;
+}
+
+/* ---------- level stage ---------- */
+.level h2 { font-size: 1.5rem; font-weight: 600; margin: 0 0 2px; }
+.level .lede { margin: 4px 0 16px; color: var(--ink-soft); max-width: 640px; }
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: 3px 3px 0 rgba(27, 33, 48, 0.08);
+}
+.panel.scopepanel {
+  background: var(--scope-bg);
+  border-color: var(--scope-edge);
+  color: #D8E0EA;
+}
+.panel h3 { margin: 0 0 8px; font-size: 1.05rem; }
+canvas.board { display: block; max-width: 100%; border: 1px solid var(--grid-major); background: #fff; touch-action: none; }
+.scopepanel canvas.board { border-color: var(--scope-edge); background: var(--scope-bg); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 10px; }
+.controls label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; }
+input[type="range"] { accent-color: var(--needle); width: 170px; }
+
+.readouts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.readout {
+  font-family: var(--mono);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 6px 10px;
+  min-width: 130px;
+  background: #fff;
+}
+.readout .k { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); display: block; }
+.readout .v { font-size: 1.25rem; font-weight: 600; }
+.readout.good .v { color: var(--ok); }
+.readout.bad .v { color: var(--needle); }
+.scopepanel .readout { background: var(--scope-bg); border-color: var(--phosphor-dim); color: var(--phosphor); }
+.scopepanel .readout .k { color: var(--phosphor-dim); }
+
+button.act {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button.act.secondary { background: var(--paper); color: var(--ink); }
+button.act:disabled { opacity: 0.4; cursor: not-allowed; }
+button.act.choice.selected { background: var(--needle); border-color: var(--needle); }
+
+.hint { font-size: 0.88rem; color: var(--ink-soft); margin-top: 8px; }
+.verdict { font-weight: 600; margin-top: 10px; }
+.verdict.win { color: var(--ok); }
+.verdict.miss { color: var(--needle); }
+
+details.formalize {
+  border-left: 3px solid var(--needle);
+  background: var(--needle-soft);
+  padding: 8px 12px;
+  margin: 14px 0;
+}
+details.formalize summary { font-weight: 600; cursor: pointer; }
+details.formalize p { margin: 8px 0 4px; }
+
+/* ---------- tower ---------- */
+.tower { display: flex; flex-direction: column-reverse; gap: 6px; max-width: 460px; margin: 10px 0; }
+.tier {
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: #fff;
+  padding: 8px 12px;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+.tier .chips { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.chip { font-family: var(--mono); font-size: 0.62rem; border: 1px solid var(--grid-major); border-radius: 10px; padding: 1px 8px; color: var(--ink-soft); }
+.chip.solved { border-color: var(--ok); color: var(--ok); }
+.chip.preprint { border-color: var(--phosphor-dim); color: var(--phosphor-dim); }
+.tier.foundation { border-color: var(--needle); }
+.tier.fallen { transform: translateY(14px) rotate(-2.5deg); opacity: 0.25; }
+.tier.lit { box-shadow: 0 0 0 3px rgba(31, 122, 70, 0.25); border-color: var(--ok); }
+
+/* ---------- sorting ---------- */
+.sortgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.bucket { border: 2px dashed var(--grid-major); border-radius: 3px; padding: 8px; min-height: 120px; }
+.bucket h4 { margin: 0 0 6px; font-size: 0.82rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; }
+.bucket.armed { border-color: var(--needle); }
+.techcard {
+  border: 1px solid var(--ink);
+  background: #fff;
+  border-radius: 2px;
+  padding: 6px 9px;
+  margin: 4px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.techcard.selected { background: var(--needle-soft); border-color: var(--needle); }
+.techcard.right { border-color: var(--ok); background: #EAF5EE; }
+.techcard.wrong { border-color: var(--needle); background: var(--needle-soft); }
+.cardtray { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; min-height: 38px; }
+
+/* ---------- finite grid ---------- */
+.fgrid { display: grid; grid-template-columns: repeat(5, 44px); gap: 4px; margin: 10px 0; }
+.fcell { width: 44px; height: 44px; border: 1px solid var(--grid-major); border-radius: 2px; background: #fff; }
+.fcell.on { background: var(--needle); border-color: var(--needle); }
+.dirrow { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.78rem; margin: 4px 0; }
+.dirrow button { width: 28px; height: 28px; font-family: var(--mono); cursor: pointer; background: #fff; border: 1px solid var(--ink); border-radius: 2px; }
+
+/* ---------- insight cards ---------- */
+section.gallery { margin-top: 30px; border-top: 2px solid var(--ink); padding-top: 12px; }
+.gallery h2 { font-size: 1.1rem; margin: 0 0 10px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.insight {
+  border: 1px solid var(--ink);
+  border-top: 4px solid var(--needle);
+  background: #fff;
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  animation: cardIn 0.5s ease;
+}
+.insight h4 { margin: 0 0 6px; font-size: 0.95rem; }
+.insight p { margin: 0; color: var(--ink-soft); }
+@keyframes cardIn { from { transform: translateY(8px); opacity: 0; } }
+
+.winbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--ok);
+  background: #EAF5EE;
+  border-radius: 3px;
+  padding: 10px 14px;
+  margin: 14px 0;
+}
+.winbar .msg { font-weight: 600; color: var(--ok); }
+
+footer.colophon { margin-top: 40px; font-size: 0.78rem; color: var(--ink-soft); border-top: 1px solid var(--grid-major); padding-top: 10px; }
+footer.colophon a { color: var(--ink); }
+
+@media (max-width: 640px) {
+  .sortgrid { grid-template-columns: 1fr; }
+  .controls { gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<!-- BUNDLE -->
+</body>
+</html>
