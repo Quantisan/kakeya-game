@@ -1,0 +1,7 @@
+node_modules/
+
+# Build output — run `npm run build` to regenerate dist/kakeya-game.html
+dist/
+
+# Screenshots written by scripts/drive.mjs
+scripts/shots/
